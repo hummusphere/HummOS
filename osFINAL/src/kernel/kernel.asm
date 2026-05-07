@@ -4,9 +4,6 @@ bits 16
 
 %define ENDL 0x0D, 0x0A 
 
-mov ax, 0x0033   ; 80x50 text mode
-int 0x10
-
 jmp  start
 nop
 
@@ -157,6 +154,26 @@ cmd_parse:
     call compare
     je sps_cmd ;jmp if equal
 
+    mov si, cmd
+    mov di, cmd_time
+    call compare
+    je time_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_mr
+    call compare
+    je mr_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_info
+    call compare
+    je info_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_bits
+    call compare
+    je bits_cmd ;jmp if equal
+
     mov byte [cmd_index], 0 
 
     mov ah, 0x0E
@@ -202,6 +219,13 @@ sps_cmd:
     mov byte [cmd_index], 0 
     jmp create_new_line
 
+bits_cmd:
+    mov si, bits_conversion
+    call puts
+
+    mov byte [cmd_index], 0 
+    jmp create_new_line
+
 clear_cmd:
     mov ax, 0x0003
     int 0x10        ; set text mode 80x25, clears screen
@@ -217,6 +241,246 @@ quit_cmd:
 
 reboot_cmd:
     jmp 0FFFFh:0
+
+time_cmd:
+    ; call time function 
+    ; hours stored in ch
+    ; minutes stored in cl
+    ; seconds stored in dh
+    mov ah, 02h
+    int 1Ah
+
+    mov si, time_is
+    call puts
+
+    mov al, ch
+    call .convert_time
+
+    mov al, ':'
+    call .print_time
+
+    mov al, cl
+    call .convert_time
+
+    mov al, ':'
+    call .print_time
+
+    mov al, dh
+    call .convert_time
+
+    mov byte [cmd_index], 0
+    jmp create_new_line
+
+.convert_time:
+    ; ex: 0x14 -> 14
+    push ax
+
+    ;extract first digit
+    mov ah, al
+    shr ah, 4
+    add ah, '0'
+
+    mov al, ah
+    call .print_time
+
+    pop ax
+
+    ;extract second digit digit
+    and al, 0Fh
+    add al, '0'
+    call .print_time
+
+    ret
+
+.print_time:
+    mov ah, 0x0e
+    mov bh, 0
+    int 0x10
+    ret
+
+
+    jmp main
+
+delay:
+    mov cx, 0FFFFh
+.loop:
+    loop .loop
+    ret
+
+mr_cmd:
+    call matrix_rain
+    mov byte [cmd_index], 0
+    call main
+
+
+matrix_rain:
+
+    ;move into video memory
+    mov ax, 0xB800
+    mov es, ax
+
+    ;bx=x ;cx=columns
+    mov bx, 0
+    mov cx, 80
+
+
+.initalize_columns:
+    ;move 0 into every col
+    mov byte [cols + bx], 0
+    inc bx
+    loop .initalize_columns ;auto dec cx 
+
+.main_loop:
+ 
+    mov bx, 0
+    mov cx, 80
+
+.loop:
+
+    mov dl, [cols + bx]
+    call .print
+
+    inc byte [cols + bx]
+
+    cmp byte [cols+bx], 25
+    jl .check
+
+    mov byte [cols + bx], 0 
+
+    mov ah, 01       ; check if key pressed
+    int 0x16
+
+    jne .stop_matrix
+
+.check:
+    inc bx
+    loop .loop
+
+    call delay
+    jmp .main_loop
+
+
+.print:
+    ; for pixels di must be y*320 + x where x,y is (x,y) resolution is 320px by 200px
+    ; ascii is similar but with y*80 + x
+
+    ;al = character ah = color
+    push ax
+    push bx
+    push cx
+    push dx
+    push di
+
+    mov dx, [cols + bx]
+
+    mov dl, [cols + bx]   ; DL = Y (low byte)
+    xor dh, dh            ; DH = 0 → DX = Y as 16-bit
+    mov ax, dx            ; AX = Y
+    mov dx, 80
+    mul dx                 ; AX = Y*80
+    add ax, bx             ; + X
+    shl ax, 1              ; *2 bytes per cell
+    mov di, ax
+
+    mov al, [seed]
+    add al, 33
+    mov [seed], al
+
+    and al, 0x7F
+    cmp al, 33
+    ja .check_character
+    add al, 33
+
+.check_character:
+    mov ah, 0x0A
+
+    mov [es:di], al ;char
+    mov [es:di+1], ah ;color
+
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+
+    ret
+
+.stop_matrix:
+    ret
+
+info_cmd:
+
+    pusha 
+
+    mov si, info_text
+    call puts
+
+    mov eax, 0
+    cpuid
+
+    ; cpu info in ebx, edx, ecx
+    mov [cpu_info], ebx
+    mov [cpu_info+4], edx
+    mov [cpu_info+8], ecx 
+
+    mov byte [cpu_info+12],0
+
+    mov si, cpu_info
+    call puts
+
+    mov dword [cpu_info], 0
+    mov dword [cpu_info+4], 0
+    mov dword [cpu_info+8], 0
+    mov byte [cpu_info+12], 0
+
+    popa
+    
+    mov si, ram_text
+    call puts
+
+    pusha
+    int 12h
+    mov bx,10
+    xor cx,cx
+    call .ram
+
+.return:
+    mov si, kb
+    call puts
+
+    mov si, mode_text
+    call puts
+
+    mov si, disk_text
+    call puts
+
+    mov si, kernel_version
+    call puts
+
+    mov byte [cmd_index], 0
+    jmp create_new_line
+
+.ram:
+    xor dx,dx
+    div bx ;ax/bx ax=quotient dx=remainder ax = quotient
+    push dx ;save dx
+    inc cx
+
+    test ax, ax ;check if ax = 0
+    jnz .ram
+
+.print_ram:
+    pop dx
+    add dl, '0' ;convert to ascii
+
+    mov al, dl
+    mov ah, 0x0e
+    int 0x10
+
+    loop .print_ram ;loop till cx is empty
+
+    popa
+    jmp .return
 
 new_line:
     mov ah, 0x0E
@@ -364,7 +628,18 @@ cmd: times 32 db 0 ; reserve 32 bytes of memory
 cmd_index: db 0 ;cmd index 
 
 cmd_help: db '-h', 0
-msg_help: db 'Commands', 0x0A, '-h: help (list of cmds)', 0x0A, '-c: clear terminal', 0x0A, '-q: quit system', 0x0A, '-r: reboot system', 0x0A, '-sps: print sps logo', 0
+msg_help: db 0x0A, '===============================================', 0x0A,\
+                    '             HUMMUSOS COMMANDS                ', 0x0A,\
+                    '===============================================', 0x0A,0x0A,\
+                    '-h: help (list of cmds)', 0x0A,\
+                    '-c: clear terminal', 0x0A,\
+                    '-q: quit system', 0x0A,\
+                    '-r: reboot system', 0x0A,\
+                    '-t: display time', 0x0A,\
+                    '-i: info', 0x0A,\
+                    '-b: bits-bytes-hex conversion table',0x0A,\
+                    '-mr: matrix rain', 0x0A,\
+                    '-sps: print sps logo', 0x0A, 0
 
 cmd_clear: db '-c', 0
 
@@ -375,6 +650,48 @@ cmd_quit: db '-q', 0
 cmd_reboot: db '-r', 0
 
 cmd_sps: db '-sps', 0
+
+cmd_time: db '-t', 0
+time_is: db 0x0A, 'THE CURRENT TIME IS (24h): ', 0
+
+cmd_mr: db '-mr', 0
+cols db 80 dup(0) ; array of 80 bytes, 1 for each y position in matrix
+seed db 42
+
+cmd_info: db '-i', 0
+cpu_info times 13 db 0
+info_text: db 0x0A, 0x0A, '===============================================', 0x0A,\
+                    '             HUMMUSOS SYSTEM INFO              ', 0x0A,\
+                    '===============================================', 0x0A,0x0A,\
+                    'CPU VENDOR: ', 0x0A, 0
+
+kernel_version: db 0x0A, 'KERNEL: ', 0x0A, 'Version 1.0.3', 0x0A,0
+ram_text: db 0x0A, 0x0A, 'RAM:', 0x0A, 0
+kb: db ' KB', 0x0A, 0
+disk_text: db 0x0A, 'Disk:', 0x0A, 'FLOPPY DISK 2880 sectors * 512 bytes (1.44MB)', 0x0A, 0
+mode_text: db 0x0A, 'Mode:', 0x0A, 'VGA BIOS 03h (80x25 text mode)', 0x0A, 0
+
+cmd_bits: db '-b', 0
+bits_conversion: db 0x0A,'===============================================', 0x0A,\
+                      '        BITS/BYTES/HEX CONVERSION TABLE        ', 0x0A,\
+                      '===============================================', 0x0A,\
+                      'BITS                HEX          NOTES          ',0x0A,\
+                      '0000                0            8 bits is equal',0x0A,\
+                      '0001                1            to 1 byte. So, ',0x0A,\
+                      '0010                2            a 64 bit regis-',0x0A,\
+                      '0011                3            ter is actually',0x0A,\
+                      '0100                4            an 8 byte regi-',0x0A,\
+                      '0101                5            ster.          ',0x0A,\
+                      '0110                6                           ',0x0A,\
+                      '0111                7            1 hex value = 4',0x0A,\
+                      '1000                8            bits so 2 hex  ',0x0A,\
+                      '1001                9            values = 8 bits',0x0A,\
+                      '1010                A            or 1 byte.     ',0x0A,\
+                      '1011                B                           ',0x0A,\
+                      '1100                C            Therefore a 64 ',0x0A,\
+                      '1101                D            bit register   ',0x0A,\
+                      '1110                E            contains 16 hex',0x0A,\
+                      '1111                F            values.        ',0x0A,0
 
 hummus_logo: db 0x0A, "$$\   $$\ $$\   $$\ $$\      $$\ $$\      $$\ $$\   $$\  $$$$$$\  ", 0x0A, \
                  "$$ |  $$ |$$ |  $$ |$$$\    $$$ |$$$\    $$$ |$$ |  $$ |$$  __$$\ ", 0x0A, \
