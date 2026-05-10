@@ -107,24 +107,234 @@ main: ;main function
     call puts
 
 keyboard_input:
-    mov ah, 0x00 ; BIOS key press
-    int 0x16     ;AL = ascii character
-    ;al becomes whatever is typed
+    mov ah, 0x00
+    int 0x16        ; AL = typed character
+    mov [last_key], al
 
-    cmp al, 0x0D ;enter pressed
-    je cmd_parse ; jmp if equal enter
+    cmp al, 0x0D    ; Enter?
+    je cmd_parse
 
-    mov bl, [cmd_index] ; get the value inside cmd index
-    mov [cmd + bx], al ;set the position of cmd + bx to al
-    inc byte [cmd_index] ;inc cmd index
+    cmp al, 0x08    ; Backspace?
+    je .backspace_input
 
-    mov ah, 0x0E ; print al to bios 
+    cmp ah, 0x4B    ; Left arrow pressed?
+    je .left_arrow_pressed
+
+    cmp ah, 0x4D    ; Right arrow pressed?
+    je .right_arrow_pressed
+
+    cmp ah, 0x48     ; up arrow
+    je keyboard_input
+
+    cmp ah, 0x50     ; down arrow
+    je keyboard_input
+
+    cmp byte [cmd_index], 31
+    jae keyboard_input
+
+    push ax
+    xor al, al
+    xor cx, cx          ; CX = length counter
+    xor bx, bx          ; BX = index
+
+    call .count_index
+
+    cmp byte [cmd_index], cl
+    jb .move_up
+
+    pop ax
+
+    mov bl, [cmd_index]
+    mov [cmd + bx], al
+    inc byte [cmd_index]
+
+    mov ah, 0x0E
     int 0x10
 
     jmp keyboard_input
 
-cmd_parse:
+.move_up:
+    cmp cl, 31
+    je keyboard_input
+    
+    xor bx, bx
+    xor dx, dx
+    pop ax
+
+    mov bl, cl
+
+.move_up_loop:
+    mov dl, [cmd + bx]
+    mov byte [cmd + bx + 1], dl
+    dec bx
+
+    cmp bl, byte [cmd_index]
+    jb .redraw
+
+    cmp bl, 0
+    je .special_redraw
+
+    jmp .move_up_loop
+
+.special_redraw:
+    mov dl, [cmd + bx]
+    mov byte [cmd + bx + 1], dl
+
+.redraw:
+    mov ah, 0x03
+    mov bh, 0
+    int 0x10
+
+    mov ah, 0x02
+    mov bh, 0
+    mov dl, 0
+    int 0x10
+
+    mov cx, 79
+
+.clear_loop:
+    mov ah, 0x0E
+    mov al, ' '
+    int 0x10
+    loop .clear_loop
+
+    mov ah, 0x02
+    mov bh, 0
+    mov dl, 0
+    int 0x10
+
+    mov si, prompt
+    call puts
+
+    xor bx, bx
+
+.print_loop:
+    mov al, [cmd + bx]
+
+    cmp al, 0
+    je .return_loop
+
+    mov ah, 0x0E
+    int 0x10
+
+    inc bx
+
+    jmp .print_loop
+
+
+.return_loop:
+    mov ah, 0x0E
+    mov al, 0x08          ; move cursor left
+    int 0x10
+    dec bl
+    cmp bl, [cmd_index]
+    je .yet_another_return_function
+    jmp .return_loop
+
+.yet_another_return_function:
+    pop ax
+    mov al, [last_key]
+    mov ah, 0x0E
+    int 0x10             ; print character / move visually right
+
     mov bl, [cmd_index]
+    mov [cmd + bx], al
+    inc byte [cmd_index]
+
+    jmp keyboard_input
+
+
+.count_index:
+    mov al, [cmd + bx]
+    cmp al, 0
+    je .done
+
+    inc cx
+    inc bx
+    jmp .count_index
+
+.done:
+    ret
+
+.backspace_input:
+    cmp byte [cmd_index], 0
+    je keyboard_input     ; go back to keyboard_input if starting
+
+    dec byte [cmd_index]
+    xor bx,bx
+    mov bl, [cmd_index]
+
+    mov ah, 0x0E
+    mov al, 0x08          ; move cursor left
+    int 0x10
+
+    xor cx,cx
+    mov cx, 1
+
+.backspace_loop:
+    mov dl, [cmd + bx + 1]
+    mov byte [cmd + bx], dl
+
+    mov ah, 0x0E
+    mov al, dl
+    int 0x10
+    
+    cmp dl, 0
+    je .move_back
+    
+    inc bx
+    inc cx
+    jmp .backspace_loop
+    
+.move_back:
+    mov ah, 0x0E
+    mov al, 0x08          ; move cursor left
+    int 0x10
+
+    loop .move_back
+
+    jmp keyboard_input
+
+.left_arrow_pressed:
+    cmp byte [cmd_index], 0
+    je keyboard_input     ; go back to keyboard_input if starting
+
+    mov ah, 0x0E
+    mov al, 0x08          ; move cursor left
+    int 0x10
+
+    dec byte [cmd_index]
+
+    jmp keyboard_input
+
+
+.right_arrow_pressed:
+    cmp byte [cmd_index], 32
+    jae keyboard_input
+
+    xor bh, bh
+    mov bl, [cmd_index]
+
+    mov al, [cmd + bx]   ; load existing character
+
+    cmp al, 0
+    je keyboard_input    ; nothing there
+
+    mov ah, 0x0E
+    int 0x10             ; print character / move visually right
+
+    inc byte [cmd_index]
+
+    jmp keyboard_input
+
+cmd_parse:
+    xor al, al
+    xor cx, cx          ; CX = length counter
+    xor bx, bx          ; BX = index
+
+    call .count_index
+
+    mov bx, cx
     mov byte [cmd + bx], 0
 
     mov si, cmd
@@ -192,6 +402,18 @@ cmd_parse:
 
     jmp create_new_line
 
+.count_index:
+    mov al, [cmd + bx]
+    cmp al, 0
+    je .done
+
+    inc cx
+    inc bx
+    jmp .count_index
+
+.done:
+    ret
+
 help_cmd:
     mov ah, 0x0E
 
@@ -234,6 +456,10 @@ clear_cmd:
     int 0x10        ; set text mode 80x25, clears screen
     xor si, si
     mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
     jmp main
 
 quit_cmd:
@@ -326,25 +552,7 @@ wait_1s:
     pop es
     ret
 
-mr_cmd:
-    call matrix_rain
-    mov byte [cmd_index], 0
-    call main
-
-dvd_cmd:
-    call .main
-    mov byte [cmd_index], 0
-    jmp create_new_line
-
-.main:
-    mov ax, 0xB800
-    mov es, ax
-
-    mov bx,0
-    call .clear_screen
-    jmp .main_loop
-
-.clear_screen:
+clear_screen:
     xor di, di
     mov cx, 2000
 
@@ -356,12 +564,31 @@ dvd_cmd:
     loop .clear_loop
     ret
 
+dvd_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+    call .main
+    mov byte [cmd_index], 0
+    jmp clear_cmd
+
+.main:
+    mov ax, 0xB800
+    mov es, ax
+
+    mov bx,0
+    call clear_screen
+    jmp .main_loop
+
+
 .main_loop:
     mov ah, 0x01
     int 0x16
     jnz .key_pressed 
 
-    call .clear_screen
+    call clear_screen
 
     push ax
     push cx
@@ -435,6 +662,16 @@ dvd_cmd:
 
 .halt:
     jmp .halt
+
+mr_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+    call matrix_rain
+    mov byte [cmd_index], 0
+    jmp clear_cmd
 
 matrix_rain:
 
@@ -626,6 +863,12 @@ create_new_line:
 
     mov si, prompt
     call puts
+
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+
     jmp keyboard_input
 
 floppy_error:
@@ -743,59 +986,60 @@ disk_reset:
     popa
     ret
 
-msg_hello: db 'Welcome to HummOS! Type "-h" for a list of commands.', ENDL, 0
+msg_hello: db 'Welcome to HummOS! Type "help" for a list of commands.', ENDL, 0
 msg_read_failed: db 'Read from disk failed', ENDL, 0
 prompt: db '[user@hummOS]$ ', 0
+last_key db 0
 
 cmd: times 32 db 0 ; reserve 32 bytes of memory
 cmd_index: db 0 ;cmd index 
 
-cmd_help: db '-h', 0
+cmd_help: db 'help', 0
 msg_help: db 0x0A, '===============================================', 0x0A,\
                     '               HUMMOS COMMANDS                ', 0x0A,\
                     '===============================================', 0x0A,0x0A,\
-                    '-h: help (list of cmds)', 0x0A,\
-                    '-c: clear terminal', 0x0A,\
-                    '-q: quit system', 0x0A,\
-                    '-r: reboot system', 0x0A,\
-                    '-t: display time', 0x0A,\
-                    '-i: info', 0x0A,\
-                    '-b: bits-bytes-hex conversion table',0x0A,\
-                    '-mr: matrix rain', 0x0A,\
-                    '-dvd: bouncing dvd logo', 0x0A,\
-                    '-sps: print sps logo', 0x0A, 0
+                    'help: help (list of commands)', 0x0A,\
+                    'clear: clear terminal', 0x0A,\
+                    'quit: quit system', 0x0A,\
+                    'reboot: reboot system', 0x0A,\
+                    'time: display time', 0x0A,\
+                    'info: system info', 0x0A,\
+                    'bits: bits-bytes-hex conversion table',0x0A,\
+                    'matrix: matrix rain', 0x0A,\
+                    'dvd: bouncing dvd logo', 0x0A,\
+                    'sps: print sps logo', 0x0A, 0
 
-cmd_clear: db '-c', 0
+cmd_clear: db 'clear', 0
 
-msg_error: db 'Error: cmd not found', 0
+msg_error: db 'Error: Oops! Command not found!', 0
 
-cmd_quit: db '-q', 0
+cmd_quit: db 'quit', 0
 
-cmd_reboot: db '-r', 0
+cmd_reboot: db 'reboot', 0
 
-cmd_sps: db '-sps', 0
+cmd_sps: db 'sps', 0
 
-cmd_time: db '-t', 0
+cmd_time: db 'time', 0
 time_is: db 0x0A, 'THE CURRENT TIME IS (24h): ', 0
 
-cmd_mr: db '-mr', 0
+cmd_mr: db 'matrix', 0
 cols db 80 dup(0) ; array of 80 bytes, 1 for each y position in matrix
 seed db 42
 
-cmd_info: db '-i', 0
+cmd_info: db 'info', 0
 cpu_info times 13 db 0
 info_text: db 0x0A, 0x0A, '===============================================', 0x0A,\
                     '               HUMMOS SYSTEM INFO              ', 0x0A,\
                     '===============================================', 0x0A,0x0A,\
                     'CPU VENDOR: ', 0x0A, 0
 
-kernel_version: db 0x0A, 'KERNEL: ', 0x0A, 'Version 1.0.3', 0x0A,0
+kernel_version: db 0x0A, 'KERNEL: ', 0x0A, 'Version 1.0.4', 0x0A,0
 ram_text: db 0x0A, 0x0A, 'RAM:', 0x0A, 0
 kb: db ' KB', 0x0A, 0
 disk_text: db 0x0A, 'Disk:', 0x0A, 'FLOPPY DISK 2880 sectors * 512 bytes (1.44MB)', 0x0A, 0
 mode_text: db 0x0A, 'Mode:', 0x0A, 'VGA BIOS 03h (80x25 text mode)', 0x0A, 0
 
-cmd_bits: db '-b', 0
+cmd_bits: db 'bits', 0
 bits_conversion: db 0x0A,'===============================================', 0x0A,\
                       '        BITS/BYTES/HEX CONVERSION TABLE        ', 0x0A,\
                       '===============================================', 0x0A,\
@@ -817,7 +1061,7 @@ bits_conversion: db 0x0A,'===============================================', 0x0A
                       '1110                E            contains 16 hex',0x0A,\
                       '1111                F            values.        ',0x0A,0
 
-cmd_dvd: db '-dvd', 0
+cmd_dvd: db 'dvd', 0
 x dw 0
 y dw 0
 x_velocity dw 1
