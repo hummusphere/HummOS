@@ -53,7 +53,7 @@ load_kernel:
     mov bx, 0x7E00        ; Load address of kernel
 
     mov ah, 0x02          ; BIOS function: read sectors
-    mov al, 50             ; Number of sectors to read
+    mov al, 50            ; Number of sectors to read
     mov ch, 0             ; Cylinder
     mov cl, 2             ; Sector 2
     mov dh, 0             ; Head

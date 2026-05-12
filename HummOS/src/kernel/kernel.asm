@@ -117,6 +117,9 @@ keyboard_input:
     cmp al, 0x08    ; Backspace?
     je .backspace_input
 
+    cmp ah, 0x53   ; Del
+    je .backspace_input
+
     cmp ah, 0x4B    ; Left arrow pressed?
     je .left_arrow_pressed
 
@@ -387,6 +390,57 @@ cmd_parse:
     call compare
     je dvd_cmd ;jmp if equal
 
+    mov si, cmd
+    mov di, cmd_chud
+    call compare
+    je secret_chud_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_unicorn
+    call compare
+    je unicorn_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_lion
+    call compare
+    je lion_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_error
+    call compare
+    je error_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_pong
+    call compare
+    je pong_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_credits
+    call compare
+    je credits_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_snake
+    call compare
+    je snake_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_snake_impossible
+    call compare
+    je snake_cmd_impossible ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_hoi4
+    call compare
+    je hoi4_cmd ;jmp if equal
+
+    mov si, cmd
+    mov di, cmd_2026
+    call compare
+    je class_of_2026_cmd ;jmp if equal
+
+
     mov byte [cmd_index], 0 
 
     mov ah, 0x0E
@@ -443,6 +497,337 @@ sps_cmd:
 
     mov byte [cmd_index], 0 
     jmp create_new_line
+
+
+class_of_2026_cmd:
+    mov ah, 0x0E
+
+    mov al, 0x0D    
+    int 0x10
+
+    mov al, 0x0A
+    int 0x10
+
+    mov si, class_of_2026
+    call puts
+
+    mov byte [cmd_index], 0 
+    jmp create_new_line
+
+hoi4_cmd:
+    mov ah, 0x0E
+
+    mov al, 0x0D    
+    int 0x10
+
+    mov al, 0x0A
+    int 0x10
+
+    mov si, hoi4_troops
+    call puts
+
+    mov byte [cmd_index], 0 
+    jmp create_new_line
+
+credits_cmd:
+    mov ah, 0x0E
+
+    mov al, 0x0D    
+    int 0x10
+
+    mov al, 0x0A
+    int 0x10
+
+    mov si, msg_credits
+    call puts
+
+    mov byte [cmd_index], 0 
+    jmp create_new_line
+
+secret_chud_cmd:
+    mov ah, 0x0E
+
+    mov al, 0x0D    
+    int 0x10
+
+    mov al, 0x0A
+    int 0x10
+
+    mov si, chud_logo
+    call puts
+
+    mov byte [cmd_index], 0 
+    jmp create_new_line
+
+unicorn_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+    
+    mov word [art_x], 0
+    mov word [art_y], 0
+    mov word [logo_index],0
+
+    call .main
+    mov byte [cmd_index], 0
+    jmp clear_cmd
+
+.main:
+    mov ax, 0x0003
+    int 0x10
+    
+    mov ax, 0xB800
+    mov es, ax
+
+    call clear_screen
+
+.main_loop:
+
+    push ax
+    push cx
+    push dx
+    push bx
+
+    xor di, di
+    mov ax, [art_y]
+    mov dx, 80
+    mul dx
+
+    shl ax, 1
+    mov di, ax
+    mov bx, [art_x]
+    shl bx, 1
+    add di, bx
+
+    pop bx
+    pop dx
+    pop cx
+    pop ax
+
+    mov bx, [logo_index]
+    mov al, [unicorn_logo + bx]
+
+    cmp al, 0x0A
+    je .new_line
+
+    cmp al, 0
+    je .wait
+
+    mov byte [es:di], al
+    mov byte [es:di+1], 0x71
+
+    inc word [art_x]
+    inc word [logo_index]
+    jmp .main_loop
+
+.new_line:
+    mov byte [art_x], 0
+    inc [art_y]
+    inc word [logo_index]
+    jmp .main_loop
+
+.wait:
+    mov ah, 0x01
+    int 0x16
+    jnz .done
+    jmp .wait
+
+.done:
+    ret
+
+lion_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+    
+    mov word [art_x], 0
+    mov word [art_y], 0
+    mov word [logo_index],0
+
+    call .main
+    mov byte [cmd_index], 0
+    jmp clear_cmd
+
+.main:
+    mov ax, 0x0003
+    int 0x10
+
+    mov ax, 0xB800
+    mov es, ax
+
+    call clear_screen
+
+.main_loop:
+
+    push ax
+    push cx
+    push dx
+    push bx
+
+    xor di, di
+    mov ax, [art_y]
+    mov dx, 80
+    mul dx
+
+    shl ax, 1
+    mov di, ax
+    mov bx, [art_x]
+    shl bx, 1
+    add di, bx
+
+    pop bx
+    pop dx
+    pop cx
+    pop ax
+
+    mov bx, [logo_index]
+    mov al, [lion_logo + bx]
+
+    cmp al, 0x0A
+    je .new_line
+
+    cmp al, 0
+    je .wait
+
+    mov byte [es:di], al
+    mov byte [es:di+1], 0x74
+
+    inc word [art_x]
+    inc word [logo_index]
+    jmp .main_loop
+
+.new_line:
+    mov word [art_x], 0
+    inc word [art_y]
+    inc word [logo_index]
+    jmp .main_loop
+
+.wait:
+    mov ah, 0x01
+    int 0x16
+    jnz .done
+    jmp .wait
+
+.done:
+    ret
+
+error_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+    
+    mov word [art_x], 0
+    mov word [art_y], 0
+    mov word [logo_index],0
+
+    call .main
+    mov byte [cmd_index], 0
+    jmp clear_cmd
+
+.main:
+    mov ax, 0x0003
+    int 0x10
+
+    mov ax, 0xB800
+    mov es, ax
+
+    call clear_screen
+
+.main_loop:
+
+    push ax
+    push cx
+    push dx
+    push bx
+
+    xor di, di
+    mov ax, [art_y]
+    mov dx, 80
+    mul dx
+
+    shl ax, 1
+    mov di, ax
+    mov bx, [art_x]
+    shl bx, 1
+    add di, bx
+
+    pop bx
+    pop dx
+    pop cx
+    pop ax
+
+    mov bx, [logo_index]
+    mov al, [error_screen + bx]
+
+    cmp al, 0x71
+    je .change_gray
+
+    cmp al, 0x1F
+    je .change_blue
+
+    cmp al, 0x0A
+    je .new_line
+
+    cmp al, 0
+    je .wait
+
+    mov byte [es:di], al
+    mov al, byte [error_color]
+    mov byte [es:di+1], al
+
+    inc word [art_x]
+    inc word [logo_index]
+    jmp .main_loop
+
+.change_gray:
+    mov byte [error_color],0x71
+    inc word [logo_index]
+    jmp .main_loop
+
+.change_blue: 
+    inc word [logo_index]
+    mov byte [error_color], 0x1F
+    jmp .main_loop
+
+.new_line:
+    mov byte [art_x], 0
+    inc [art_y]
+    inc word [logo_index]
+    jmp .main_loop
+
+.wait:
+    mov ah, 0x01
+    int 0x16
+    jnz .done
+
+    push ds
+    mov ax, 0x0040
+    mov ds, ax
+
+    mov al, [0x0017]
+
+    pop ds
+
+    test al, 0x04      ; CTRL
+    jz .wait
+
+    test al, 0x08      ; ALT
+    jz .wait
+
+    ; CTRL + ALT is pressed here
+    jmp .pressed
+
+.pressed:
+    jmp reboot_cmd
+
+.done:
+    ret
 
 bits_cmd:
     mov si, bits_conversion
@@ -535,14 +920,14 @@ delay:
     loop .loop
     ret
 
-wait_1s:
+wait_200ms:
     push es
 
     mov ax, 0x0040
     mov es, ax
 
-    mov bx, [es:0x006C]   ; current tick
-    add bx, 18            ; ~1 second
+    mov bx, [es:0x006C]
+    add bx, 4            ; ~0.22 seconds
 
 .wait:
     mov ax, [es:0x006C]
@@ -550,6 +935,59 @@ wait_1s:
     jb .wait
 
     pop es
+    ret
+
+wait_50ms:
+    push es
+
+    mov ax, 0x0040
+    mov es, ax
+
+    mov bx, [es:0x006C]
+    add bx, 1        
+
+.wait:
+    mov ax, [es:0x006C]
+    cmp ax, bx
+    jb .wait
+
+    pop es
+    ret
+
+wait_25ms:
+    push ax
+    push bx
+    push dx
+
+    ; latch PIT channel 0
+    mov al, 0
+    out 0x43, al
+
+    ; read current counter
+    in al, 0x40
+    mov bl, al
+    in al, 0x40
+    mov bh, al
+
+.wait:
+    mov al, 0
+    out 0x43, al
+
+    in al, 0x40
+    mov dl, al
+    in al, 0x40
+    mov dh, al
+
+    ; elapsed = start - current
+    mov ax, bx
+    sub ax, dx
+
+    cmp ax, 29829
+    jb .wait
+
+    pop dx
+    pop bx
+    pop ax
     ret
 
 clear_screen:
@@ -563,6 +1001,1013 @@ clear_screen:
     add di, 2
     loop .clear_loop
     ret
+
+clear_pong:
+    mov ax, 0A000h
+    mov es, ax
+
+    xor di, di        ; start at 0
+    mov cx, 64000     ; total pixels
+    mov al, 0         ; black color
+
+    rep stosb         ; fill screen
+    ret
+
+pong_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+
+    mov word [ball_x], 50
+    mov word [ball_y], 50
+
+    mov word [ball_vel_x], 5
+    mov word [ball_vel_y], 5
+
+    mov word [left_paddle_y], 0
+    mov word [left_paddle_x], 0
+
+    mov word [right_paddle_y], 0
+    mov word [right_paddle_x], 315   
+
+.main: 
+    mov ax, 0013h
+    int 10h
+    mov ax, 0A000h
+    mov es, ax
+    
+    mov byte [pong_color], 15
+    mov si, [left_paddle_x]
+    mov ax, [left_paddle_y]
+    call .draw_paddle
+
+    mov si, [right_paddle_x]
+    mov ax, [right_paddle_y]
+    
+    call .draw_paddle
+
+    mov byte [pong_color], 2
+    xor ax, ax
+    xor si, si
+    push dx
+    mov si, word [ball_x]
+    add si, [ball_vel_x]    
+    mov [ball_x], si  
+    mov ax, word [ball_y] 
+    add ax, [ball_vel_y]           
+    mov [ball_y], ax
+    call .draw_ball
+
+    xor ah, ah
+    int 16h
+
+.loop:
+    mov byte [pong_color], 0
+    mov si, [left_paddle_x]
+    mov ax, [left_paddle_y]
+    call .draw_paddle
+
+    mov si, [right_paddle_x]
+    mov ax, [right_paddle_y]
+    call .draw_paddle
+
+    mov byte [pong_color], 0
+    xor ax, ax
+    xor si, si
+    push dx
+    mov si, word [ball_x] 
+    mov [ball_x], si  
+    mov ax, word [ball_y]      
+    mov [ball_y], ax
+    call .draw_ball
+
+    mov ah, 01h
+    int 16h
+    jz .no_input
+
+    mov ah, 00h
+    int 16h
+
+    cmp ah, 50h
+    je .move_right_down
+
+    cmp ah, 48h
+    je .move_right_up
+
+.second:
+
+    cmp al, 's'
+    je .move_left_down
+
+    cmp al, 'w'
+    je .move_left_up
+
+    jmp .no_input
+
+.move_right_up:
+    cmp word [right_paddle_y],0
+    je .second
+    sub word [right_paddle_y], 10
+    jmp .second
+
+.move_right_down:
+    cmp word [right_paddle_y],170
+    je .second
+    add word [right_paddle_y], 10
+    jmp .second
+
+.move_left_up:
+    cmp word [left_paddle_y],0
+    je .no_input
+    sub word [left_paddle_y], 10
+    jmp .no_input
+
+.move_left_down:
+    cmp word [left_paddle_y],170
+    je .no_input
+    add word [left_paddle_y], 10
+    jmp .no_input
+
+.no_input:
+
+    mov byte [pong_color], 15
+    mov si, [left_paddle_x]
+    mov ax, [left_paddle_y]
+    call .draw_paddle
+
+    mov si, [right_paddle_x]
+    mov ax, [right_paddle_y]
+    
+    call .draw_paddle
+
+    cmp [ball_y], 195
+    je .reverse_y
+
+    cmp [ball_y], 0
+    je .reverse_y
+
+.loop_one:   
+
+    cmp [ball_x], 310
+    je .check_x_right
+
+    cmp [ball_x], 5
+    je .check_x_left
+
+.loop_two:
+    mov byte [pong_color], 2
+    xor ax, ax
+    xor si, si
+    push dx
+    mov si, word [ball_x]
+    add si, [ball_vel_x]    
+    mov [ball_x], si  
+    mov ax, word [ball_y] 
+    add ax, [ball_vel_y]           
+    mov [ball_y], ax
+    call .draw_ball
+
+    call wait_50ms
+
+    jmp .loop
+
+.reverse_y:
+    neg word [ball_vel_y]
+    jmp .loop_one
+
+.check_x_right:
+    xor ax, ax
+    mov ax, [ball_y]
+
+    ; ball_y < paddle_y ?
+    cmp ax, [right_paddle_y]
+    jl .game_over
+
+    ; paddle_y + 30
+    mov bx, [right_paddle_y]
+    add bx, 30
+
+    ; ball_y > paddle_bottom ?
+    cmp ax, bx
+    jg .game_over
+
+    ; collision happened
+    jmp .bounce
+
+.bounce:
+    neg word [ball_vel_x]
+    jmp .loop_two
+
+.check_x_left:
+    xor ax, ax
+    mov ax, [ball_y]
+
+    ; ball_y < paddle_y ?
+    cmp ax, [left_paddle_y]
+    jl .game_over
+
+    ; paddle_y + 30
+    mov bx, [left_paddle_y]
+    add bx, 30
+
+    ; ball_y > paddle_bottom ?
+    cmp ax, bx
+    jg .game_over
+
+    ; collision happened
+    jmp .bounce
+
+
+.draw_ball:
+    mov bx, ax
+    mov dx, 5
+
+.ball_row_loop:
+    push dx
+    xor dx, dx
+    mov ax, bx
+    mov di, 320
+    mul di
+
+    add ax, si
+    mov di, ax
+
+    mov cx, 5
+    mov al, byte [pong_color]
+    pop dx
+
+.ball_col_loop:
+    stosb
+    loop .ball_col_loop
+
+    inc bx
+    dec dx
+    jnz .ball_row_loop
+    ret
+
+.draw_paddle:
+
+    mov bx, ax
+    mov dx, 30
+
+.row_loop:
+    push dx
+    mov ax, bx
+    mov di, 320
+    mul di
+
+    add ax, si
+    mov di, ax
+
+    mov cx, 5
+    mov al, byte [pong_color]
+    pop dx
+
+.col_loop:
+    stosb
+    loop .col_loop
+
+    inc bx
+    dec dx
+    jnz .row_loop
+    ret
+
+.game_over:
+    mov byte [pong_color], 2
+    mov si, word [ball_x]
+    add si, [ball_vel_x]    
+    mov [ball_x], si  
+    mov ax, word [ball_y] 
+    add ax, [ball_vel_y]           
+    mov [ball_y], ax
+    call .draw_ball
+    
+.hold:
+    mov ah, 0x00
+    int 0x16        ; AL = typed character
+
+    cmp al, 0x0D    ; Enter?
+    je .key_pressed 
+    jmp .hold
+
+.key_pressed:
+    mov byte [cmd_index], 0
+    jmp clear_cmd
+
+snake_clear_screen:
+    xor di, di
+    mov cx, 2000
+
+.clear_loop:
+    mov byte [es:di], 07h
+    mov byte [es:di+1], 0x07
+
+    add di, 2
+    loop .clear_loop
+    ret
+
+snake_cmd:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+
+.main:
+    mov ax, 0xB800
+    mov es, ax
+
+    mov bx,0
+    call snake_clear_screen
+
+    mov byte [snake_len], 5
+    mov byte [snake_direction], 0
+    
+    mov byte [snake_x + 0], 4
+    mov byte [snake_x + 1], 3
+    mov byte [snake_x + 2], 2
+    mov byte [snake_x + 3], 1
+
+    mov byte [snake_y + 0], 10
+    mov byte [snake_y + 1], 10
+    mov byte [snake_y + 2], 10
+    mov byte [snake_y + 3], 10
+
+    call .spawn_food
+    jmp .loop
+
+.loop:
+    call .keyboard_input
+    call .move_snake
+    call .check_collision
+    call snake_clear_screen
+    call .draw_screen
+    call .draw_food
+    call wait_50ms
+    jmp .loop
+
+.keyboard_input:
+    mov ah, 01h
+    int 16h
+    jz .no_key
+
+    mov ah, 00h
+    int 16h
+
+    cmp ah, 48h
+    je .move_up
+
+    cmp ah, 50h
+    je .move_down
+
+    cmp ah, 4Bh
+    je .move_left
+
+    cmp ah, 4Dh
+    je .move_right
+
+    ret
+
+.move_up:
+    cmp byte [snake_direction], 3
+    je .ret
+    mov byte [snake_direction], 2
+    ret
+
+.move_down:
+    cmp byte [snake_direction], 2
+    je .ret
+    mov byte [snake_direction], 3
+    ret
+
+.move_right:
+    cmp byte [snake_direction], 1
+    je .ret
+    mov byte [snake_direction], 0
+    ret
+
+.move_left:
+    cmp byte [snake_direction], 0
+    je .ret
+    mov byte [snake_direction], 1
+    ret
+
+.no_key:
+    ret
+
+.ret:
+    ret
+
+.move_snake:
+    mov cl, byte [snake_len]
+    dec cx
+    mov bx , cx
+
+.move_snake_loop:
+    mov al, [snake_x + bx - 1]
+    mov [snake_x + bx], al
+    mov al, [snake_y + bx - 1]
+    mov [snake_y + bx], al
+    dec bx
+    loop .move_snake_loop
+    
+.move_head:
+    cmp byte [snake_direction], 2
+    je .head_up
+
+    cmp byte [snake_direction], 3
+    je .head_down
+
+    cmp byte [snake_direction], 0
+    je .head_right
+
+    cmp byte [snake_direction], 1
+    je .head_left
+
+    ret
+
+.head_up:
+    dec byte [snake_y]
+    jmp .check_apple_x
+
+.head_down:
+    inc byte [snake_y]
+    jmp .check_apple_x
+
+.head_left:
+    dec byte [snake_x]
+    jmp .check_apple_x
+
+.head_right:
+    inc byte [snake_x]
+    jmp .check_apple_x
+
+.check_apple_x:
+    xor ax,ax
+    mov al, byte [food_x]
+    cmp byte [snake_x], al
+    je .check_apple_y
+    ret
+
+.check_apple_y:
+    xor ax,ax
+    mov al, byte [food_y]
+    cmp byte [snake_y], al
+    je .spawn_food
+    ret
+
+.spawn_food:
+    mov bl, [snake_len]
+
+    ; copy last tail segment into new slot
+    mov al, [snake_x + bx - 1]
+    mov [snake_x + bx], al
+
+    mov al, [snake_y + bx - 1]
+    mov [snake_y + bx], al
+
+    inc byte [snake_len]
+    ;x
+    ; get timer ticks
+    mov ah, 00h
+    int 1Ah
+
+    mov ax, dx
+    xor dx, dx
+
+    mov bx, 80
+    div bx
+
+    ; remainder in DX
+    mov [food_x], dl
+
+    ;y
+    mov ah, 00h
+    int 1Ah
+
+    mov ax, dx
+    xor dx, dx
+
+    mov bx, 25
+    div bx
+
+    mov [food_y], dl
+
+    ret
+
+.check_collision:
+    cmp byte [snake_x], 80
+    je .game_over
+
+    cmp byte [snake_x], -1
+    je .game_over
+
+    cmp byte [snake_y], -1
+    je .game_over
+
+    cmp byte [snake_y], 25
+    je .game_over
+
+.snake_self_collision:
+    xor bx, bx
+    mov bl, 1
+
+.check_loop:
+    cmp bl, [snake_len]
+    jae .done
+
+    mov al, [snake_x + bx]
+    cmp al, [snake_x]
+    jne .next
+
+    mov al, [snake_y + bx]
+    cmp al, [snake_y]
+    je .game_over
+
+.next:
+    inc bl
+    jmp .check_loop
+
+.done:
+    ret
+
+.draw_screen:
+    mov cl, [snake_len]
+    xor bx, bx
+    xor dx, dx
+
+.draw_screen_loop:
+    xor ax, ax
+    mov al, [snake_y+bx]
+    mov dx, 80
+    mul dx
+    shl ax, 1
+
+    mov di, ax
+    xor ax, ax
+    mov al, [snake_x+bx]
+    shl ax, 1
+
+    add di, ax
+
+    mov byte [es:di], 'O'
+    mov byte [es:di+1], 0x04
+
+    inc bx
+
+    loop .draw_screen_loop
+    ret
+
+.draw_food:
+
+    xor ax, ax
+    mov al, [food_y]
+
+    mov bx, 80
+    mul bx
+
+    xor bx, bx
+    mov bl, [food_x]
+
+    add ax, bx
+    shl ax, 1
+
+    mov di, ax
+
+    mov byte [es:di], 3 ; heart
+    mov byte [es:di+1], 0x0A
+
+    ret
+
+.game_over:
+    mov ax, 0xB800
+    mov es, ax
+
+    xor di, di
+
+    ; center: row 11, col 30
+    mov ax, 11
+    mov dx, 80
+    mul dx
+
+    shl ax, 1
+    mov di, ax
+
+    mov ax, 32
+    shl ax, 1
+    add di, ax
+
+    mov byte [es:di],     'Y'
+    mov byte [es:di+1],   0x09
+    mov byte [es:di+2],   'O'
+    mov byte [es:di+3],   0x09
+    mov byte [es:di+4],   'U'
+    mov byte [es:di+5],   0x09
+    mov byte [es:di+6],   'R'
+    mov byte [es:di+7],   0x09
+    mov byte [es:di+8],   ' '
+    mov byte [es:di+9],   0x09
+    mov byte [es:di+10],  'S'
+    mov byte [es:di+11],  0x09
+    mov byte [es:di+12],  'C'
+    mov byte [es:di+13],  0x09
+    mov byte [es:di+14],  'O'
+    mov byte [es:di+15],  0x09
+    mov byte [es:di+16],  'R'
+    mov byte [es:di+17],  0x09
+    mov byte [es:di+18],  'E'
+    mov byte [es:di+19],  0x09
+    mov byte [es:di+20],  ':'
+    mov byte [es:di+21],  0x09
+    mov byte [es:di+22],   ' '
+    mov byte [es:di+23],  0x09
+
+    mov ax, [snake_len]   ; number to print
+    mov bx, 10
+    xor cx, cx            ; digit count
+
+.convert:
+    xor dx, dx
+    div bx            ; AX / 10 → AX=quotient, DX=remainder
+
+    push dx           ; store digit
+    inc cx
+
+    cmp ax, 0
+    jne .convert
+
+.print:
+    pop dx
+    add dl, '0'
+    mov [es:di+24], dl
+    mov byte [es:di+25], 0x09
+    add di, 2
+    loop .print
+
+.wait:
+    mov ah, 0x00
+    int 0x16        ; AL = typed character
+
+    cmp al, 0x0D    ; Enter?
+    je .leave
+    jmp .wait
+
+.leave:
+    mov byte [cmd_index], 0
+    jmp clear_cmd
+
+snake_cmd_impossible:
+    mov byte [cmd_index], 0
+    mov edi, cmd   ; destination address
+    mov ecx, 32       ; number of bytes
+    xor eax, eax      ; AL = 0
+    rep stosb         ; fill ECX bytes at EDI with AL
+
+.main:
+    mov ax, 0xB800
+    mov es, ax
+
+    mov bx,0
+    call snake_clear_screen
+
+    mov byte [snake_len], 5
+    mov byte [snake_direction], 0
+    
+    mov byte [snake_x + 0], 4
+    mov byte [snake_x + 1], 3
+    mov byte [snake_x + 2], 2
+    mov byte [snake_x + 3], 1
+
+    mov byte [snake_y + 0], 10
+    mov byte [snake_y + 1], 10
+    mov byte [snake_y + 2], 10
+    mov byte [snake_y + 3], 10
+
+    call .spawn_food
+    jmp .loop
+
+.loop:
+    call .keyboard_input
+    call .move_snake
+    call .check_collision
+    call snake_clear_screen
+    call .draw_screen
+    call .draw_food
+    call wait_25ms
+    jmp .loop
+
+.keyboard_input:
+    mov ah, 01h
+    int 16h
+    jz .no_key
+
+    mov ah, 00h
+    int 16h
+
+    cmp ah, 48h
+    je .move_up
+
+    cmp ah, 50h
+    je .move_down
+
+    cmp ah, 4Bh
+    je .move_left
+
+    cmp ah, 4Dh
+    je .move_right
+
+    ret
+
+.move_up:
+    cmp byte [snake_direction], 3
+    je .ret
+    mov byte [snake_direction], 2
+    ret
+
+.move_down:
+    cmp byte [snake_direction], 2
+    je .ret
+    mov byte [snake_direction], 3
+    ret
+
+.move_right:
+    cmp byte [snake_direction], 1
+    je .ret
+    mov byte [snake_direction], 0
+    ret
+
+.move_left:
+    cmp byte [snake_direction], 0
+    je .ret
+    mov byte [snake_direction], 1
+    ret
+
+.no_key:
+    ret
+
+.ret:
+    ret
+
+.move_snake:
+    mov cl, byte [snake_len]
+    dec cx
+    mov bx , cx
+
+.move_snake_loop:
+    mov al, [snake_x + bx - 1]
+    mov [snake_x + bx], al
+    mov al, [snake_y + bx - 1]
+    mov [snake_y + bx], al
+    dec bx
+    loop .move_snake_loop
+    
+.move_head:
+    cmp byte [snake_direction], 2
+    je .head_up
+
+    cmp byte [snake_direction], 3
+    je .head_down
+
+    cmp byte [snake_direction], 0
+    je .head_right
+
+    cmp byte [snake_direction], 1
+    je .head_left
+
+    ret
+
+.head_up:
+    dec byte [snake_y]
+    jmp .check_apple_x
+
+.head_down:
+    inc byte [snake_y]
+    jmp .check_apple_x
+
+.head_left:
+    dec byte [snake_x]
+    jmp .check_apple_x
+
+.head_right:
+    inc byte [snake_x]
+    jmp .check_apple_x
+
+.check_apple_x:
+    xor ax,ax
+    mov al, byte [food_x]
+    cmp byte [snake_x], al
+    je .check_apple_y
+    ret
+
+.check_apple_y:
+    xor ax,ax
+    mov al, byte [food_y]
+    cmp byte [snake_y], al
+    je .spawn_food
+    ret
+
+.spawn_food:
+    mov bl, [snake_len]
+
+    ; copy last tail segment into new slot
+    mov al, [snake_x + bx - 1]
+    mov [snake_x + bx], al
+
+    mov al, [snake_y + bx - 1]
+    mov [snake_y + bx], al
+
+    inc byte [snake_len]
+    ;x
+    ; get timer ticks
+    mov ah, 00h
+    int 1Ah
+
+    mov ax, dx
+    xor dx, dx
+
+    mov bx, 80
+    div bx
+
+    ; remainder in DX
+    mov [food_x], dl
+
+    ;y
+    mov ah, 00h
+    int 1Ah
+
+    mov ax, dx
+    xor dx, dx
+
+    mov bx, 25
+    div bx
+
+    mov [food_y], dl
+
+    ret
+
+.check_collision:
+    cmp byte [snake_x], 80
+    je .game_over
+
+    cmp byte [snake_x], -1
+    je .game_over
+
+    cmp byte [snake_y], -1
+    je .game_over
+
+    cmp byte [snake_y], 25
+    je .game_over
+
+.snake_self_collision:
+    xor bx, bx
+    mov bl, 1
+
+.check_loop:
+    cmp bl, [snake_len]
+    jae .done
+
+    mov al, [snake_x + bx]
+    cmp al, [snake_x]
+    jne .next
+
+    mov al, [snake_y + bx]
+    cmp al, [snake_y]
+    je .game_over
+
+.next:
+    inc bl
+    jmp .check_loop
+
+.done:
+    ret
+
+.draw_screen:
+    mov cl, [snake_len]
+    xor bx, bx
+    xor dx, dx
+
+.draw_screen_loop:
+    xor ax, ax
+    mov al, [snake_y+bx]
+    mov dx, 80
+    mul dx
+    shl ax, 1
+
+    mov di, ax
+    xor ax, ax
+    mov al, [snake_x+bx]
+    shl ax, 1
+
+    add di, ax
+
+    mov byte [es:di], 'O'
+    mov byte [es:di+1], 0x04
+
+    inc bx
+
+    loop .draw_screen_loop
+    ret
+
+.draw_food:
+
+    xor ax, ax
+    mov al, [food_y]
+
+    mov bx, 80
+    mul bx
+
+    xor bx, bx
+    mov bl, [food_x]
+
+    add ax, bx
+    shl ax, 1
+
+    mov di, ax
+
+    mov byte [es:di], 3 ; heart
+    mov byte [es:di+1], 0x0A
+
+    ret
+
+.game_over:
+    mov ax, 0xB800
+    mov es, ax
+
+    xor di, di
+
+    ; center: row 11, col 30
+    mov ax, 11
+    mov dx, 80
+    mul dx
+
+    shl ax, 1
+    mov di, ax
+
+    mov ax, 32
+    shl ax, 1
+    add di, ax
+
+    mov byte [es:di],     'Y'
+    mov byte [es:di+1],   0x09
+    mov byte [es:di+2],   'O'
+    mov byte [es:di+3],   0x09
+    mov byte [es:di+4],   'U'
+    mov byte [es:di+5],   0x09
+    mov byte [es:di+6],   'R'
+    mov byte [es:di+7],   0x09
+    mov byte [es:di+8],   ' '
+    mov byte [es:di+9],   0x09
+    mov byte [es:di+10],  'S'
+    mov byte [es:di+11],  0x09
+    mov byte [es:di+12],  'C'
+    mov byte [es:di+13],  0x09
+    mov byte [es:di+14],  'O'
+    mov byte [es:di+15],  0x09
+    mov byte [es:di+16],  'R'
+    mov byte [es:di+17],  0x09
+    mov byte [es:di+18],  'E'
+    mov byte [es:di+19],  0x09
+    mov byte [es:di+20],  ':'
+    mov byte [es:di+21],  0x09
+    mov byte [es:di+22],   ' '
+    mov byte [es:di+23],  0x09
+
+    mov ax, [snake_len]   ; number to print
+    mov bx, 10
+    xor cx, cx            ; digit count
+
+.convert:
+    xor dx, dx
+    div bx            ; AX / 10 → AX=quotient, DX=remainder
+
+    push dx           ; store digit
+    inc cx
+
+    cmp ax, 0
+    jne .convert
+
+.print:
+    pop dx
+    add dl, '0'
+    mov [es:di+24], dl
+    mov byte [es:di+25], 0x09
+    add di, 2
+    loop .print
+
+.wait:
+    mov ah, 0x00
+    int 0x16        ; AL = typed character
+
+    cmp al, 0x0D    ; Enter?
+    je .leave
+    jmp .wait
+
+
+.leave:
+    mov byte [cmd_index], 0
+    jmp clear_cmd
 
 dvd_cmd:
     mov byte [cmd_index], 0
@@ -606,10 +2051,10 @@ dvd_cmd:
     shl bx, 1
     add di, bx
 
-    pop ax
-    pop cx
-    pop dx
     pop bx
+    pop dx
+    pop cx
+    pop ax
 
     mov byte [es:di], 'H'
     mov byte [es:di+1], 0x04
@@ -643,18 +2088,18 @@ dvd_cmd:
     cmp word [x], 0
     je .change_x
 
-    call wait_1s
+    call wait_200ms
 
     jmp .main_loop
 
 .change_y:
     neg word [y_velocity]
-    call wait_1s
+    call wait_200ms
     jmp .main_loop
 
 .change_x:
     neg word [x_velocity]
-    call wait_1s
+    call wait_200ms
     jmp .main_loop
 
 .key_pressed:
@@ -995,19 +2440,28 @@ cmd: times 32 db 0 ; reserve 32 bytes of memory
 cmd_index: db 0 ;cmd index 
 
 cmd_help: db 'help', 0
-msg_help: db 0x0A, '===============================================', 0x0A,\
-                    '               HUMMOS COMMANDS                ', 0x0A,\
-                    '===============================================', 0x0A,0x0A,\
-                    'help: help (list of commands)', 0x0A,\
-                    'clear: clear terminal', 0x0A,\
-                    'quit: quit system', 0x0A,\
-                    'reboot: reboot system', 0x0A,\
-                    'time: display time', 0x0A,\
-                    'info: system info', 0x0A,\
-                    'bits: bits-bytes-hex conversion table',0x0A,\
-                    'matrix: matrix rain', 0x0A,\
-                    'dvd: bouncing dvd logo', 0x0A,\
-                    'sps: print sps logo', 0x0A, 0
+msg_help: db 0x0A, ' ===============================================', 0x0A,\
+                    '                HUMMOS COMMANDS                ', 0x0A,\
+                    ' ===============================================', 0x0A,0x0A,\
+                    ' COMMAND               DESCRIPTION              ', 0x0A,\
+                    ' help                  list of commands         ', 0x0A,\
+                    ' clear                 clear terminal           ', 0x0A,\
+                    ' quit                  quit system              ', 0x0A,\
+                    ' reboot                reboot system            ', 0x0A,\
+                    ' time                  display time             ', 0x0A,\
+                    ' info                  system info              ', 0x0A,\
+                    ' error                 blue screen of death     ', 0x0A,\
+                    ' bits                  bits-hex conversion table',0x0A,\
+                    ' matrix                matrix rain              ', 0x0A,\
+                    ' pong                  pong game                ', 0x0A,\
+                    ' snake                 snake game               ', 0x0A,\
+                    ' snake-hard            snake hard mode          ', 0x0A,\
+                    ' dvd                   bouncing dvd screensaver ', 0x0A,\
+                    ' sps                   print sps logo           ', 0x0A,\
+                    ' lion                  view lion image          ', 0x0A,\
+                    ' unicorn               view unicorn image       ', 0x0A,\
+                    ' 2026                  class of 2026            ', 0x0A,\
+                    ' credits               sources and credits      ', 0x0A,0
 
 cmd_clear: db 'clear', 0
 
@@ -1019,6 +2473,58 @@ cmd_reboot: db 'reboot', 0
 
 cmd_sps: db 'sps', 0
 
+cmd_credits: db 'credits', 0
+msg_credits:
+    db 0x0A, " ===============================================", 0x0A,\
+       "                HUMMOS CREDITS                 ", 0x0A,\
+       " ===============================================", 0x0A,\
+       "                                                ", 0x0A,\
+       " Mxy's assembly tutorial on youtube (https://", 0x0A,\
+       " www.youtube.com/@MxyAhoy)                      ", 0x0A,\
+       "                                                ", 0x0A,\
+       " Nanobyte's operating system tutorials on       ", 0x0A,\
+       " youtube (https://www.youtube.com/@nanobyte-dev ", 0x0A,\
+       " /videos)                                       ", 0x0A,\
+       "                                                ", 0x0A,\
+       " ASCII Art Generators:                          ", 0x0A,\
+       " https://www.asciiart.eu/image-to-ascii         ", 0x0A,\
+       " https://patorjk.com/software/taag/             ", 0x0A,\
+       " Lion ASCII - https://asciiart.cc/view/12679    ", 0x0A,\
+       " Unicorn ASCII - cjr - https://www.ascii-art.de/", 0x0A,\
+       " ascii/uvw/unicorn.txt                          ", 0x0A,\
+       "                                                ", 0x0A,\
+       " GNU GRUB - Free Software Foundation            ", 0x0A,0
+                
+cmd_pong: db 'pong', 0
+ball_x dw 50
+ball_y dw 50
+ball_vel_x dw 5
+ball_vel_y dw 5
+
+left_paddle_y dw 0
+left_paddle_x dw 0
+right_paddle_y dw 0
+right_paddle_x dw 315
+
+pong_color db 0
+
+cmd_snake: db 'snake', 0
+cmd_snake_impossible: db 'snake-hard', 0
+
+snake_y: times 100 db 0
+snake_x: times 100 db 0
+
+snake_len: db 4
+snake_high_score: db 0
+
+;0=right
+;1=left
+;2=up
+;3=down
+snake_direction: db 0
+food_x: db 100
+food_y: db 100
+
 cmd_time: db 'time', 0
 time_is: db 0x0A, 'THE CURRENT TIME IS (24h): ', 0
 
@@ -1029,7 +2535,7 @@ seed db 42
 cmd_info: db 'info', 0
 cpu_info times 13 db 0
 info_text: db 0x0A, 0x0A, '===============================================', 0x0A,\
-                    '               HUMMOS SYSTEM INFO              ', 0x0A,\
+                    '                HUMMOS SYSTEM INFO              ', 0x0A,\
                     '===============================================', 0x0A,0x0A,\
                     'CPU VENDOR: ', 0x0A, 0
 
@@ -1039,27 +2545,55 @@ kb: db ' KB', 0x0A, 0
 disk_text: db 0x0A, 'Disk:', 0x0A, 'FLOPPY DISK 2880 sectors * 512 bytes (1.44MB)', 0x0A, 0
 mode_text: db 0x0A, 'Mode:', 0x0A, 'VGA BIOS 03h (80x25 text mode)', 0x0A, 0
 
+cmd_error: db 'error', 0
+error_color: db 0x1F
+error_screen: db 0x1F, "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                   ", 0x71, " HummOS ", 0x1F, "                                     ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "           An error has occurred. To Continue:                                  ",0x0A,\
+             "                                                                                ",0x0A,\
+             "           Press Enter to return to HummOS, or                                  ",0x0A,\
+             "                                                                                ",0x0A,\
+             "           Press CTRL+ALT to restart your computer. If you do this you          ",0x0A,\
+             "           will lose any unsaved information in all open applications.          ",0x0A,\
+             "                                                                                ",0x0A,\
+             "           Error: 0E : 016F : BFF9B3D4                                          ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                            Press any key to continue                           ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0x0A,\
+             "                                                                                ",0
+
 cmd_bits: db 'bits', 0
-bits_conversion: db 0x0A,'===============================================', 0x0A,\
-                      '        BITS/BYTES/HEX CONVERSION TABLE        ', 0x0A,\
-                      '===============================================', 0x0A,\
-                      'BITS                HEX          NOTES          ',0x0A,\
-                      '0000                0            8 bits is equal',0x0A,\
-                      '0001                1            to 1 byte. So, ',0x0A,\
-                      '0010                2            a 64 bit regis-',0x0A,\
-                      '0011                3            ter is actually',0x0A,\
-                      '0100                4            an 8 byte regi-',0x0A,\
-                      '0101                5            ster.          ',0x0A,\
-                      '0110                6                           ',0x0A,\
-                      '0111                7            1 hex value = 4',0x0A,\
-                      '1000                8            bits so 2 hex  ',0x0A,\
-                      '1001                9            values = 8 bits',0x0A,\
-                      '1010                A            or 1 byte.     ',0x0A,\
-                      '1011                B                           ',0x0A,\
-                      '1100                C            Therefore a 64 ',0x0A,\
-                      '1101                D            bit register   ',0x0A,\
-                      '1110                E            contains 16 hex',0x0A,\
-                      '1111                F            values.        ',0x0A,0
+bits_conversion: db 0x0A,' ===============================================', 0x0A,\
+                      '         BITS/BYTES/HEX CONVERSION TABLE        ', 0x0A,\
+                      ' ===============================================', 0x0A,\
+                      ' BITS                HEX          NOTES          ',0x0A,\
+                      ' 0000                0            8 bits is equal',0x0A,\
+                      ' 0001                1            to 1 byte. So, ',0x0A,\
+                      ' 0010                2            a 64 bit regis-',0x0A,\
+                      ' 0011                3            ter is actually',0x0A,\
+                      ' 0100                4            an 8 byte regi-',0x0A,\
+                      ' 0101                5            ster.          ',0x0A,\
+                      ' 0110                6                           ',0x0A,\
+                      ' 0111                7            1 hex value = 4',0x0A,\
+                      ' 1000                8            bits so 2 hex  ',0x0A,\
+                      ' 1001                9            values = 8 bits',0x0A,\
+                      ' 1010                A            or 1 byte.     ',0x0A,\
+                      ' 1011                B                           ',0x0A,\
+                      ' 1100                C            Therefore a 64 ',0x0A,\
+                      ' 1101                D            bit register   ',0x0A,\
+                      ' 1110                E            contains 16 hex',0x0A,\
+                      ' 1111                F            values.        ',0x0A,0
 
 cmd_dvd: db 'dvd', 0
 x dw 0
@@ -1067,16 +2601,16 @@ y dw 0
 x_velocity dw 1
 y_velocity dw 1
 
-hummus_logo: db 0x0A, "$$\   $$\ $$\   $$\ $$\      $$\ $$\      $$\  $$$$$$\   $$$$$$\  ", 0x0A, \
-                "$$ |  $$ |$$ |  $$ |$$$\    $$$ |$$$\    $$$ |$$  __$$\ $$  __$$\ ", 0x0A, \
-                "$$ |  $$ |$$ |  $$ |$$$$\  $$$$ |$$$$\  $$$$ |$$ /  $$ |$$ /  \__|", 0x0A, \
-                "$$$$$$$$ |$$ |  $$ |$$\$$\$$ $$ |$$\$$\$$ $$ |$$ |  $$ |\$$$$$$\  ", 0x0A, \
-                "$$  __$$ |$$ |  $$ |$$ \$$$  $$ |$$ \$$$  $$ |$$ |  $$ | \____$$\ ", 0x0A, \
-                "$$ |  $$ |$$ |  $$ |$$ |\$  /$$ |$$ |\$  /$$ |$$ |  $$ |$$\   $$ |", 0x0A, \
-                "$$ |  $$ |\$$$$$$  |$$ | \_/ $$ |$$ | \_/ $$ | $$$$$$  |\$$$$$$  |", 0x0A, \
-                "\__|  \__| \______/ \__|     \__|\__|     \__| \______/  \______/ ", 0x0A, 0x0A, 0
+hummus_logo: db 0x0A, "  $$\   $$\ $$\   $$\ $$\      $$\ $$\      $$\  $$$$$$\   $$$$$$\  ", 0x0A, \
+                "  $$ |  $$ |$$ |  $$ |$$$\    $$$ |$$$\    $$$ |$$  __$$\ $$  __$$\ ", 0x0A, \
+                "  $$ |  $$ |$$ |  $$ |$$$$\  $$$$ |$$$$\  $$$$ |$$ /  $$ |$$ /  \__|", 0x0A, \
+                "  $$$$$$$$ |$$ |  $$ |$$\$$\$$ $$ |$$\$$\$$ $$ |$$ |  $$ |\$$$$$$\  ", 0x0A, \
+                "  $$  __$$ |$$ |  $$ |$$ \$$$  $$ |$$ \$$$  $$ |$$ |  $$ | \____$$\ ", 0x0A, \
+                "  $$ |  $$ |$$ |  $$ |$$ |\$  /$$ |$$ |\$  /$$ |$$ |  $$ |$$\   $$ |", 0x0A, \
+                "  $$ |  $$ |\$$$$$$  |$$ | \_/ $$ |$$ | \_/ $$ | $$$$$$  |\$$$$$$  |", 0x0A, \
+                "  \__|  \__| \______/ \__|     \__|\__|     \__| \______/  \______/ ", 0x0A, 0x0A, 0
 
-
+cmd_chud: db 'chud', 0
 chud_logo db "                     @@@@@@@@@@@@@@@@@@@@@@@                                ", 0x0A, \
             "                    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                  ", 0x0A, \
             "               @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            ", 0x0A, \
@@ -1120,17 +2654,115 @@ chud_logo db "                     @@@@@@@@@@@@@@@@@@@@@@@                      
             "                                  @@%****%@@                                    ", 0
 
 sps_logo: db 0x0A, "                 -    -                 ", 0x0A, \
-            "             ??????  ??????             ", 0x0A, \
-            "          ?]  ????????????   ?          ", 0x0A, \
-            "         ]??]  -?????????  ????-        ", 0x0A, \
-            "        ??????  _??????   ??????<       ", 0x0A, \
-            "         ??????_  ????  ???????         ", 0x0A, \
-            "         -???????  ?-  ??????_l         ", 0x0A, \
+            "             ??????  ??????              _____                 _ _       ", 0x0A, \
+            "          ?]  ????????????   ?          /  ___|               | (_) ", 0x0A, \
+            "         ]??]  -?????????  ????-        \ `--.  __ _ _ __   __| |_  __ _ ", 0x0A, \
+            "        ??????  _??????   ??????<        `--. \/ _` | '_ \ / _` | |/ _` | ", 0x0A, \
+            "         ??????_  ????  ???????         /\__/ / (_| | | | | (_| | | (_| | ", 0x0A, \
+            "         -???????  ?-  ??????_l         \____/ \__,_|_| |_|\__,_|_|\__,_| ", 0x0A, \
             "      ????????????   -????????????      ", 0x0A, \
-            "      -???????_         ~?????????      ", 0x0A, \
-            "       ?-      -???  ????      ??       ", 0x0A, \
-            "         ~?????????  ????????-          ", 0x0A, \
-            "        ???????????  ???????????        ", 0x0A, \
-            "         ??????????  ?????????-         ", 0x0A, \
-            "              ?????  ?????              ", 0x0A, \
-            "              ?????  ?????              ", 0x0A, 0
+            "      -???????_         ~?????????      ______   ", 0x0A, \
+            "       ?-      -???  ????      ??       | ___ \   ", 0x0A, \
+            "         ~?????????  ????????-          | |_/ / __ ___ _ __        ", 0x0A, \
+            "        ???????????  ???????????        |  __/ '__/ _ \ '_ \ ", 0x0A, \
+            "         ??????????  ?????????-         | |  | | |  __/ |_) |             ", 0x0A, \
+            "              ?????  ?????              \_|  |_|  \___| .__/       ", 0x0A, \
+            "              ?????  ?????                            |_|                ", 0x0A, 0
+
+art_x: dw 0
+art_y: dw 0
+logo_index: dw 0
+cmd_unicorn: db 'unicorn', 0
+unicorn_logo: db "                                                                                ",0x0A,\
+             "                             \                                                  ",0x0A,\
+             "                              \                               Press Any Key To  ",0x0A,\
+             "                               \\\\                           Exit              ",0x0A,\
+             "                                \\\\                                            ",0x0A,\
+             "                                 >\\/7                                          ",0x0A,\
+             "                             _.-(6'  \\                                         ",0x0A,\
+             "                            (=___._/` \\                                        ",0x0A,\
+             "                                 )  \\ |                                        ",0x0A,\
+             "                                /   / |                                         ",0x0A,\
+             "                               /    > /                                         ",0x0A,\
+             "                              j    < _\\                                        ",0x0A,\
+             "                          _.-' :      ``.                                       ",0x0A,\
+             "                          \\ r=._\\        `.                                   ",0x0A,\
+             "                         <`\\\\_  \\         .`-.                               ",0x0A,\
+             "                          \\ r-7  `-. ._  ' .  `\\                              ",0x0A,\
+             "                           \\\`,      `-.`7  7)   )                             ",0x0A,\
+             "                            \\/         \\|  \\'  / `-._                        ",0x0A,\
+             "                                       ||    .'                                 ",0x0A,\
+             "                                        \\\\  (                                 ",0x0A,\
+             "                                         >\\  >                                 ",0x0A,\
+             "                                     ,.-' >.'                                   ",0x0A,\
+             "                                    <.'_.'')                                    ",0x0A,\
+             "                                      <'                                        ",0x0A,\
+             "                                                                                ",0
+
+cmd_lion: db 'lion', 0
+lion_logo:
+            db\
+            "                                                                                ",0x0A,\
+            "                                                              Press Any Key To  ",0x0A,\
+            "                                                              Exit              ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                      \\|\\||                                                   ",0x0A,\
+            "                     -' ||||/                                                   ",0x0A,\
+            "                    /7   |||||/                                                 ",0x0A,\
+            "                   /    |||||||/`-.____________                                 ",0x0A,\
+            "                   \\-' |||||||||               `-._                            ",0x0A,\
+            "                    -|||||||||||               |` -`.                           ",0x0A,\
+            "                      ||||||               \\   |   `\\\\                       ",0x0A,\
+            "                       |||||\\  \\______...---\\_  \\    \\\\                   ",0x0A,\
+            "                          |  \\  \\           | \\  |    ``-.__--.              ",0x0A,\
+            "                          |  |\\  \\         / / | |       ``---'               ",0x0A,\
+            "                        _/  /_/  /      __/ / _| |                              ",0x0A,\
+            "                       (,__/(,__/      (,__/ (,__/                              ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0x0A,\
+            "                                                                                ",0
+
+cmd_2026: db '2026',0
+class_of_2026 db \
+"   ___ _                            ",0x0A,\
+"  / __\ | __ _ ___ ___              ",0x0A,\
+" / /  | |/ _` / __/ __|             ",0x0A,\
+"/ /___| | (_| \__ \__ \             ",0x0A,\
+"\____/|_|\__,_|___/___/             ",0x0A,\
+"                                    ",0x0A,\
+"        __   ____   ___ ____   __   ",0x0A,\
+"  ___  / _| |___ \ / _ \___ \ / /_  ",0x0A,\
+" / _ \| |_    __) | | | |__) | '_ \ ",0x0A,\
+"| (_) |  _|  / __/| |_| / __/| (_) |",0x0A,\
+" \___/|_|   |_____|\___/_____|\___/ ",0x0A,0
+                                    
+
+
+cmd_hoi4: db 'hoi4',0
+hoi4_troops db "   |\                |\                |\                |\",0x0A,\
+"   || .---.          || .---.          || .---.          || .---.",0x0A,\
+"   ||/_____\         ||/_____\         ||/_____\         ||/_____\",0x0A,\
+"   ||( '.' )         ||( '.' )         ||( '.' )         ||( '.' )",0x0A,\
+"   || \_-_/_         || \_-_/_         || \_-_/_         || \_-_/_",0x0A,\
+"   :-\'`'V'//-.       :-\'`'V'//-.       :-\'`'V'//-.       :-\'`'V'//-.",0x0A,\
+"  / ,   |// , `\    / ,   |// , `\    / ,   |// , `\    / ,   |// , `\\",0x0A,\
+" / /|Ll //Ll|| |   / /|Ll //Ll|| |   / /|Ll //Ll|| |   / /|Ll //Ll|| |",0x0A,\
+"/_/||__//   || |  /_/||__//   || |  /_/||__//   || |  /_/||__//   || |",0x0A,\
+"\ \/---|[]==|| |  \ \/---|[]==|| |  \ \/---|[]==|| |  \ \/---|[]==|| |",0x0A,\
+" \/\__/ |   \| |   \/\__/ |   \| |   \/\__/ |   \| |   \/\__/ |   \| |",0x0A,\
+" /\|_   | Ll_\ |   /|/_   | Ll_\ |   /|/_   | Ll_\ |   /|/_   | Ll_\ |",0x0A,\
+" `--|`^\'\'\'^`||_|   `--|`^\'\'\'^`||_|   `--|`^\'\'\'^`||_|   `--|`^",0x0A,\
+"    |   |   ||/       |   |   ||/       |   |   ||/       |   |   ||/",0x0A,\
+"    |   |   |         |   |   |         |   |   |         |   |   |",0x0A,\
+"    |   |   |         |   |   |         |   |   |         |   |   |",0x0A,\
+"    |   |   |         |   |   |         |   |   |         |   |   |",0x0A,\
+"    L___l___J         L___l___J         L___l___J         L___l___J",0x0A,\
+"     |_ | _|           |_ | _|           |_ | _|           |_ | _|",0x0A,\
+"ggs (___|___)         (___|___)         (___|___)         (___|___)",0x0A,\
+"     ^^^ ^^^           ^^^ ^^^           ^^^ ^^^           ^^^ ^^^",0
