@@ -2,7 +2,7 @@
 
 My own custom operating system made from assembly. 
 
-<div style="left: 0; width: 100%; height: 0; position: relative; padding-bottom: 56.25%;"><iframe src="https://www.youtube.com/embed/AIzbUgElu74?rel=0" style="top: 0; left: 0; width: 100%; height: 100%; position: absolute; border: 0;" allowfullscreen scrolling="no" allow="accelerometer *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *;" referrerpolicy="strict-origin"></iframe></div>
+[![HummOS Demo Link](https://i9.ytimg.com/vi_webp/AIzbUgElu74/mqdefault.webp?v=6a19b021&sqp=CNDm5tAG&rs=AOn4CLAnMWS_lGb9T56gHebxe1PMpIrzpA)](https://youtu.be/AIzbUgElu74)
 
 ## Description
 This project took around 40 hours. It has a built-in command line interface, you can use any of the available commands displayed below. HummOS mainly relies on the BIOS's VGA text mode, so the program might look different depending on your software. This entire program fits inside a 1.44MB floppy disk with the kernel using 50 sectors of memory.  
