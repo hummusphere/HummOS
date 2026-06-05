@@ -1,6 +1,6 @@
 # HummOS
 
-My own custom operating system made from assembly. 
+My own custom operating system made from assembly. Click below for a demo.
 
 [![HummOS Demo Link](https://github.com/hummusphere/HummOS/blob/main/preview.png?raw=true)](https://youtu.be/AIzbUgElu74)
 
